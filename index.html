@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>奨学金 返還セカンドオピニオン</title>
+<meta name="description" content="奨学金の返し方を、そのまま・減額返還・返還期限猶予・繰上返還・延滞の5つで並べて比べられる無料ツール。入力はすべてブラウザ内で完結し、どこにも送信されません。">
+<meta name="color-scheme" content="light dark">
+<meta property="og:title" content="奨学金 返還セカンドオピニオン">
+<meta property="og:description" content="減額返還を使っても返還総額は増えません。延滞は総額が増えて信用情報にも残ります。あなたの数字で並べて確かめられます。">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Shippori+Mincho+B1:wght@600;800&display=swap">
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧮</text></svg>">
+</head>
+<body>
+
+<header class="mast">
+  <div class="wrap">
+    <p class="eyebrow">JASSO奨学金の返還をシミュレーションする無料ツール</p>
+    <h1>奨学金 返還セカンドオピニオン</h1>
+    <p class="thesis">
+      <b>減額返還を使っても、返還総額は増えません。</b>月々の額が下がって期間が延びるだけです。
+      いっぽう延滞すると、3か月で個人信用情報機関に登録され、督促に応じなければ
+      返還期日が来ていない分まで一括請求されます。
+      しかも<b>延滞している間は減額返還を申請できません</b>。
+      同じ「払えない」でも、手続きをするかしないかで結果がまったく変わります。
+      あなたの数字で、5つの選択肢を並べて確かめてください。
+    </p>
+    <p class="privacy">
+      <span aria-hidden="true">🔒</span>
+      入力した内容はすべてブラウザの中だけで計算され、どこにも送信されません。会員登録も不要です。
+    </p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============================================ 入力 -->
+  <section aria-labelledby="h-input">
+    <div class="sec-head"><h2 id="h-input">あなたの奨学金</h2></div>
+    <p class="sec-lead">
+      正確な数値は<a href="https://www.jasso.go.jp/shogakukin/oyakudachi/sukara_ps/index.html" target="_blank" rel="noopener">スカラネット・パーソナル</a>か、
+      貸与終了時に届いた「返還誓約書の写し」「返還予定表」で確認できます。
+      わからない項目はそのままでも、おおよその比較はできます。
+    </p>
+
+    <form id="form" class="form" autocomplete="off">
+
+      <fieldset class="fs">
+        <legend>借りている奨学金</legend>
+
+        <div class="field">
+          <span class="label" id="lbl-kind">種類</span>
+          <div class="seg" role="radiogroup" aria-labelledby="lbl-kind">
+            <label><input type="radio" name="kind" value="1shu"><span>第一種だけ<small>無利子</small></span></label>
+            <label><input type="radio" name="kind" value="2shu" checked><span>第二種だけ<small>有利子</small></span></label>
+            <label><input type="radio" name="kind" value="heiyo"><span>併用<small>両方</small></span></label>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="label" id="lbl-mode">入力方法</span>
+          <div class="seg seg-sm" role="radiogroup" aria-labelledby="lbl-mode">
+            <label><input type="radio" name="mode" value="monthly" checked><span>月額 × 月数</span></label>
+            <label><input type="radio" name="mode" value="total"><span>貸与総額</span></label>
+          </div>
+        </div>
+
+        <div class="grp" id="grp-1shu" hidden>
+          <h3 class="grp-h">第一種（無利子）</h3>
+          <div class="row">
+            <label class="f" data-mode="monthly">
+              <span class="label">貸与月額</span>
+              <span class="inp"><input type="number" id="m1" min="0" step="1000" value="54000" inputmode="numeric"><i>円</i></span>
+            </label>
+            <label class="f" data-mode="monthly">
+              <span class="label">貸与月数</span>
+              <span class="inp"><input type="number" id="n1" min="1" max="120" step="1" value="48" inputmode="numeric"><i>か月</i></span>
+            </label>
+            <label class="f" data-mode="total" hidden>
+              <span class="label">貸与総額</span>
+              <span class="inp"><input type="number" id="t1" min="0" step="10000" value="2592000" inputmode="numeric"><i>円</i></span>
+            </label>
+          </div>
+          <p class="hint" id="hint1"></p>
+        </div>
+
+        <div class="grp" id="grp-2shu">
+          <h3 class="grp-h">第二種（有利子）</h3>
+          <div class="row">
+            <label class="f" data-mode="monthly">
+              <span class="label">貸与月額</span>
+              <span class="inp"><input type="number" id="m2" min="0" step="1000" value="50000" inputmode="numeric"><i>円</i></span>
+            </label>
+            <label class="f" data-mode="monthly">
+              <span class="label">貸与月数</span>
+              <span class="inp"><input type="number" id="n2" min="1" max="120" step="1" value="48" inputmode="numeric"><i>か月</i></span>
+            </label>
+            <label class="f" data-mode="total" hidden>
+              <span class="label">貸与総額</span>
+              <span class="inp"><input type="number" id="t2" min="0" step="10000" value="2400000" inputmode="numeric"><i>円</i></span>
+            </label>
+          </div>
+          <div class="row">
+            <label class="f">
+              <span class="label">利率方式</span>
+              <span class="inp"><select id="rateMode">
+                <option value="fixed">利率固定方式</option>
+                <option value="review">利率見直し方式</option>
+              </select></span>
+            </label>
+            <label class="f">
+              <span class="label">利率（年）</span>
+              <span class="inp"><input type="number" id="rate" min="0" max="3" step="0.001" value="2.722" inputmode="decimal"><i>%</i></span>
+            </label>
+          </div>
+          <p class="hint" id="hint2"></p>
+        </div>
+      </fieldset>
+
+      <fieldset class="fs">
+        <legend>返還の状況</legend>
+        <div class="row">
+          <label class="f">
+            <span class="label">返還開始</span>
+            <span class="inp inp-2">
+              <input type="number" id="startY" min="1990" max="2100" step="1" value="2026" inputmode="numeric"><i>年</i>
+              <input type="number" id="startM" min="1" max="12" step="1" value="10" inputmode="numeric"><i>月</i>
+            </span>
+          </label>
+          <label class="f">
+            <span class="label">繰上返還にあてられる額</span>
+            <span class="inp"><input type="number" id="kuriage" min="0" step="10000" value="300000" inputmode="numeric"><i>円</i></span>
+          </label>
+        </div>
+        <div class="checks">
+          <label class="chk"><input type="checkbox" id="delinquent"><span>いま返還を延滞している</span></label>
+          <label class="chk"><input type="checkbox" id="incomeLinked"><span>所得連動返還方式を選んでいる<small>第一種のみ</small></span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="fs">
+        <legend>いまの収入<small class="lg-note">制度が使えるかの判定に使います</small></legend>
+        <div class="row">
+          <label class="f">
+            <span class="label" id="lbl-salaried">働き方</span>
+            <span class="inp"><select id="salaried" aria-labelledby="lbl-salaried">
+              <option value="1">給与所得者（会社員・パートなど）</option>
+              <option value="0">給与所得以外を含む（自営業・フリーランスなど）</option>
+            </select></span>
+          </label>
+          <label class="f">
+            <span class="label"><span id="incomeLabel">年間収入金額</span>（税込）</span>
+            <span class="inp"><input type="number" id="income" min="0" step="100000" value="3200000" inputmode="numeric"><i>円</i></span>
+          </label>
+        </div>
+        <div class="row">
+          <label class="f">
+            <span class="label">扶養している子の人数</span>
+            <span class="inp"><input type="number" id="children" min="0" max="10" step="1" value="0" inputmode="numeric"><i>人</i></span>
+          </label>
+          <label class="f">
+            <span class="label">被扶養者の人数<small>子を含む</small></span>
+            <span class="inp"><input type="number" id="dependents" min="0" max="10" step="1" value="0" inputmode="numeric"><i>人</i></span>
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="form-foot">
+        <button type="button" id="reset" class="btn-ghost">サンプルの数値に戻す</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ============================================ 現状 -->
+  <section aria-labelledby="h-now">
+    <div class="sec-head"><h2 id="h-now">いまの返還プラン</h2></div>
+    <div class="stats" id="stats"></div>
+    <p class="note" id="planNote"></p>
+  </section>
+
+  <!-- ============================================ 比較 -->
+  <section aria-labelledby="h-compare">
+    <div class="sec-head"><h2 id="h-compare">5つの選択肢を並べる</h2></div>
+    <p class="sec-lead">
+      同じ返還額でも、選ぶ手続きによって「総額」と「信用情報」への影響がまったく変わります。
+      赤く表示されるのは、あなたにコストが乗る選択肢です。
+    </p>
+
+    <div class="ctrls">
+      <label class="ctrl">
+        <span>減額返還の割合</span>
+        <select id="gengakuRatio"></select>
+      </label>
+      <label class="ctrl">
+        <span>減額返還の適用期間</span>
+        <select id="gengakuMonths">
+          <option value="12" selected>12か月（1回の願出）</option>
+          <option value="36">36か月</option>
+          <option value="60">60か月</option>
+          <option value="180">180か月（通算の上限）</option>
+        </select>
+      </label>
+      <label class="ctrl">
+        <span>猶予・延滞の月数</span>
+        <select id="months">
+          <option value="3">3か月</option>
+          <option value="6">6か月</option>
+          <option value="12" selected>12か月</option>
+          <option value="24">24か月</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="options" id="options"></div>
+  </section>
+
+  <!-- ============================================ 金利シナリオ -->
+  <section id="scenarioSec" aria-labelledby="h-scenario" hidden>
+    <div class="sec-head"><h2 id="h-scenario">金利が上がったら</h2></div>
+    <p class="sec-lead" id="scenarioLead"></p>
+    <div class="scen" id="scenario"></div>
+  </section>
+
+  <!-- ============================================ 次にやること -->
+  <section aria-labelledby="h-next">
+    <div class="sec-head"><h2 id="h-next">次にやること</h2></div>
+    <div class="next" id="next"></div>
+
+    <h3 class="sub">相談できるところ</h3>
+    <ul class="consult" id="consult"></ul>
+  </section>
+
+  <!-- ============================================ 免責と出典 -->
+  <section aria-labelledby="h-about">
+    <div class="sec-head"><h2 id="h-about">このツールについて</h2></div>
+
+    <div class="disc">
+      <h3>数字の精度</h3>
+      <p id="accuracy"></p>
+      <h3>できないこと</h3>
+      <p>
+        このツールは計算結果と制度の一般的な説明を示すだけのもので、個別の法律相談や債務整理の助言は行いません。
+        実際の返還額・承認の可否・手続きの内容は、必ずJASSOの公式情報とあなた宛の返還予定表で確認してください。
+        判断に迷うときは、下の公的な相談窓口をご利用ください。
+      </p>
+      <h3>お金は取りません</h3>
+      <p>
+        無料で、広告もアフィリエイトリンクも入れていません。
+        金融商品や法律事務所への送客もしません。リンク先は公的機関だけです。
+      </p>
+    </div>
+
+    <h3 class="sub">出典</h3>
+    <ul class="srcs" id="srcs"></ul>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p id="footNote"></p>
+    <p>
+      <a href="https://github.com/kashiwa2951/loan-second-opinion" target="_blank" rel="noopener">ソースコード（GitHub）</a>
+      ・ 計算式もデータもすべて公開しています。誤りを見つけたら Issue でお知らせください。
+    </p>
+  </div>
+</footer>
+
+<script type="module" src="assets/app.js"></script>
+</body>
+</html>
