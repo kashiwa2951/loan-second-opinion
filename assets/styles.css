@@ -123,6 +123,7 @@ h1 {
   max-width: 62ch;
   font-size: clamp(.95rem, 2.1vw, 1.05rem);
   color: var(--ink-2);
+  word-break: auto-phrase;
 }
 .thesis b { color: var(--ink); }
 
@@ -136,7 +137,11 @@ h1 {
   background: var(--accent-soft);
   border-radius: 8px;
   padding: 10px 14px;
-  max-width: 62ch;
+  /* 一文なので測度で切らない。62ch だと画面が広くても末尾1文字だけが
+     2行目に落ちる。狭いときだけ折り返し、その折り返しは文節で行う。 */
+  max-width: 100%;
+  word-break: auto-phrase;
+  text-wrap: pretty;
 }
 
 /* ---------------------------------------------------------------- sections */
@@ -169,6 +174,7 @@ h3.sub {
   max-width: 66ch;
   color: var(--ink-2);
   font-size: .92rem;
+  word-break: auto-phrase;
 }
 
 .note {
@@ -434,6 +440,7 @@ input[type="number"] { text-align: right; }
   font-size: .78rem;
   line-height: 1.6;
   color: var(--ink-2);
+  word-break: auto-phrase;
 }
 .opt-foot.is-block { background: var(--danger-soft); color: var(--danger); font-weight: 700; }
 .opt-foot.is-ok { background: var(--accent-soft); }
