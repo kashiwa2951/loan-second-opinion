@@ -78,6 +78,17 @@ body {
   font-size: 16px;
   line-height: 1.85;
   -webkit-font-smoothing: antialiased;
+
+  /* 日本語は単語の区切りが無いので、既定では文の途中どこでも改行される。
+     文節の切れ目で折り返すよう指定する（非対応ブラウザは従来どおり）。 */
+  word-break: auto-phrase;
+}
+
+/* 最終行に1文字だけ取り残される折り返しを防ぐ。
+   本文ブロックはすべてこれを通す。 */
+p, li, dd, dt, figcaption, blockquote,
+.opt-foot, .hint, .note, .fs-title, .grp-h {
+  text-wrap: pretty;
 }
 
 .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 20px; }
@@ -123,7 +134,6 @@ h1 {
   max-width: 62ch;
   font-size: clamp(.95rem, 2.1vw, 1.05rem);
   color: var(--ink-2);
-  word-break: auto-phrase;
 }
 .thesis b { color: var(--ink); }
 
@@ -140,8 +150,6 @@ h1 {
   /* 一文なので測度で切らない。62ch だと画面が広くても末尾1文字だけが
      2行目に落ちる。狭いときだけ折り返し、その折り返しは文節で行う。 */
   max-width: 100%;
-  word-break: auto-phrase;
-  text-wrap: pretty;
 }
 
 /* ---------------------------------------------------------------- sections */
@@ -174,7 +182,6 @@ h3.sub {
   max-width: 66ch;
   color: var(--ink-2);
   font-size: .92rem;
-  word-break: auto-phrase;
 }
 
 .note {
@@ -440,7 +447,6 @@ input[type="number"] { text-align: right; }
   font-size: .78rem;
   line-height: 1.6;
   color: var(--ink-2);
-  word-break: auto-phrase;
 }
 .opt-foot.is-block { background: var(--danger-soft); color: var(--danger); font-weight: 700; }
 .opt-foot.is-ok { background: var(--accent-soft); }
