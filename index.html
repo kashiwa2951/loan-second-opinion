@@ -49,8 +49,8 @@
 
     <form id="form" class="form" autocomplete="off">
 
-      <fieldset class="fs">
-        <legend>借りている奨学金</legend>
+      <div class="fs" role="group" aria-labelledby="fs-loan">
+        <h3 class="fs-title" id="fs-loan">借りている奨学金</h3>
 
         <div class="field">
           <span class="label" id="lbl-kind">種類</span>
@@ -70,7 +70,7 @@
         </div>
 
         <div class="grp" id="grp-1shu" hidden>
-          <h3 class="grp-h">第一種（無利子）</h3>
+          <h4 class="grp-h">第一種（無利子）</h4>
           <div class="row">
             <label class="f" data-mode="monthly">
               <span class="label">貸与月額</span>
@@ -89,7 +89,7 @@
         </div>
 
         <div class="grp" id="grp-2shu">
-          <h3 class="grp-h">第二種（有利子）</h3>
+          <h4 class="grp-h">第二種（有利子）</h4>
           <div class="row">
             <label class="f" data-mode="monthly">
               <span class="label">貸与月額</span>
@@ -119,10 +119,10 @@
           </div>
           <p class="hint" id="hint2"></p>
         </div>
-      </fieldset>
+      </div>
 
-      <fieldset class="fs">
-        <legend>返還の状況</legend>
+      <div class="fs" role="group" aria-labelledby="fs-status">
+        <h3 class="fs-title" id="fs-status">返還の状況</h3>
         <div class="row">
           <label class="f">
             <span class="label">返還開始</span>
@@ -131,19 +131,15 @@
               <input type="number" id="startM" min="1" max="12" step="1" value="10" inputmode="numeric"><i>月</i>
             </span>
           </label>
-          <label class="f">
-            <span class="label">繰上返還にあてられる額</span>
-            <span class="inp"><input type="number" id="kuriage" min="0" step="10000" value="300000" inputmode="numeric"><i>円</i></span>
-          </label>
         </div>
         <div class="checks">
           <label class="chk"><input type="checkbox" id="delinquent"><span>いま返還を延滞している</span></label>
           <label class="chk"><input type="checkbox" id="incomeLinked"><span>所得連動返還方式を選んでいる<small>第一種のみ</small></span></label>
         </div>
-      </fieldset>
+      </div>
 
-      <fieldset class="fs">
-        <legend>いまの収入<small class="lg-note">制度が使えるかの判定に使います</small></legend>
+      <div class="fs" role="group" aria-labelledby="fs-income">
+        <h3 class="fs-title" id="fs-income">いまの収入<small>制度が使えるかの判定に使います</small></h3>
         <div class="row">
           <label class="f">
             <span class="label" id="lbl-salaried">働き方</span>
@@ -167,7 +163,7 @@
             <span class="inp"><input type="number" id="dependents" min="0" max="10" step="1" value="0" inputmode="numeric"><i>人</i></span>
           </label>
         </div>
-      </fieldset>
+      </div>
 
       <div class="form-foot">
         <button type="button" id="reset" class="btn-ghost">サンプルの数値に戻す</button>
@@ -186,35 +182,10 @@
   <section aria-labelledby="h-compare">
     <div class="sec-head"><h2 id="h-compare">5つの選択肢を並べる</h2></div>
     <p class="sec-lead">
-      同じ返還額でも、選ぶ手続きによって「総額」と「信用情報」への影響がまったく変わります。
-      赤く表示されるのは、あなたにコストが乗る選択肢です。
+      同じ「払えない」でも、選ぶ手続きによって総額と信用情報への影響がまったく変わります。
+      それぞれのカードの中で条件を変えると、そのカードの数字だけが変わります。
+      赤く表示されるのは、あなたにコストが乗る項目です。
     </p>
-
-    <div class="ctrls">
-      <label class="ctrl">
-        <span>減額返還の割合</span>
-        <select id="gengakuRatio"></select>
-      </label>
-      <label class="ctrl">
-        <span>減額返還の適用期間</span>
-        <select id="gengakuMonths">
-          <option value="12" selected>12か月（1回の願出）</option>
-          <option value="36">36か月</option>
-          <option value="60">60か月</option>
-          <option value="180">180か月（通算の上限）</option>
-        </select>
-      </label>
-      <label class="ctrl">
-        <span>猶予・延滞の月数</span>
-        <select id="months">
-          <option value="3">3か月</option>
-          <option value="6">6か月</option>
-          <option value="12" selected>12か月</option>
-          <option value="24">24か月</option>
-        </select>
-      </label>
-    </div>
-
     <div class="options" id="options"></div>
   </section>
 

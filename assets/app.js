@@ -1,13 +1,18 @@
 /**
  * 画面の配線。計算そのものは calc.js、制度の数値は jasso-data.js が持つ。
  * ここでは入力を読んで、結果を DOM に描くことだけをする。
+ *
+ * 入力は2か所に分かれている。
+ *   1. 上部のフォーム  … 「あなたの事実」（借入額・返還開始・収入）
+ *   2. 各カードの中     … 「その選択肢だけの条件」（減らす割合、猶予する期間など）
+ * カード内の条件は params が持ち、そのカードの数字だけを動かす。
  */
 
 import {
   buildPlan, plan2shu,
   gengakuEligibility, yuyoEligibility,
   applyGengaku, applyYuyo, applyKuriage, applyEntai,
-  payoffDate, yen, monthsLabel, returnCount,
+  payoffDate, monthsLabel, returnCount,
 } from './calc.js';
 
 import {
@@ -16,19 +21,29 @@ import {
 } from './jasso-data.js';
 
 const $ = (id) => document.getElementById(id);
-const STORAGE_KEY = 'loan-second-opinion:v1';
+const STORAGE_KEY = 'loan-second-opinion:v2';
 
-/** サンプルの数値。第二種を4年間・月5万円、利率は令和8年4月の固定方式。 */
-const SAMPLE = {
+/** 上部フォームのサンプル値。第二種を4年間・月5万円、利率は令和8年4月の固定方式。 */
+const SAMPLE_FORM = {
   kind: '2shu', mode: 'monthly',
   m1: 54000, n1: 48, t1: 2592000,
   m2: 50000, n2: 48, t2: 2400000,
   rateMode: 'fixed', rate: 2.722,
-  startY: 2026, startM: 10, kuriage: 300000,
+  startY: 2026, startM: 10,
   delinquent: false, incomeLinked: false,
   salaried: '1', income: 3200000, children: 0, dependents: 0,
-  gengakuRatio: '0.5', gengakuMonths: '12', months: '12',
 };
+
+/** 各カードが持つ条件の初期値 */
+const SAMPLE_PARAMS = {
+  gengakuRatio: 0.5,
+  gengakuMonths: 12,
+  yuyoMonths: 12,
+  entaiMonths: 12,
+  kuriage: 300000,
+};
+
+let params = { ...SAMPLE_PARAMS };
 
 // ------------------------------------------------------------ 入力の読み書き
 
@@ -47,20 +62,16 @@ function readForm() {
     ratePct: Number($('rate').value) || 0,
     rateMode: $('rateMode').value,
     startY: num('startY'), startM: num('startM'),
-    kuriage: num('kuriage'),
     delinquent: $('delinquent').checked,
     incomeLinked: $('incomeLinked').checked,
     isSalaried: $('salaried').value === '1',
     income: num('income'),
     children: num('children'),
     dependents: num('dependents'),
-    gengakuRatio: Number($('gengakuRatio').value),
-    gengakuMonths: Number($('gengakuMonths').value),
-    months: Number($('months').value),
   };
 }
 
-function applyValues(v) {
+function applyFormValues(v) {
   for (const [k, val] of Object.entries(v)) {
     if (k === 'kind' || k === 'mode') {
       const el = document.querySelector(`input[name="${k}"][value="${val}"]`);
@@ -75,17 +86,17 @@ function applyValues(v) {
 }
 
 function snapshot() {
-  const out = {};
-  for (const k of Object.keys(SAMPLE)) {
+  const form = {};
+  for (const k of Object.keys(SAMPLE_FORM)) {
     if (k === 'kind' || k === 'mode') {
-      out[k] = document.querySelector(`input[name="${k}"]:checked`)?.value;
+      form[k] = document.querySelector(`input[name="${k}"]:checked`)?.value;
       continue;
     }
     const el = $(k);
     if (!el) continue;
-    out[k] = el.type === 'checkbox' ? el.checked : el.value;
+    form[k] = el.type === 'checkbox' ? el.checked : el.value;
   }
-  return out;
+  return { form, params };
 }
 
 function save() {
@@ -95,7 +106,11 @@ function save() {
 function restore() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) { applyValues(JSON.parse(raw)); return true; }
+    if (!raw) return false;
+    const saved = JSON.parse(raw);
+    if (saved.form) applyFormValues(saved.form);
+    if (saved.params) params = { ...SAMPLE_PARAMS, ...saved.params };
+    return Boolean(saved.form);
   } catch { /* 壊れていたらサンプルで動かす */ }
   return false;
 }
@@ -110,7 +125,6 @@ const el = (tag, cls, html) => {
 };
 
 const fmtDate = (d) => `${d.year}年${d.month}月`;
-
 const money = (n) => Math.round(n).toLocaleString('ja-JP');
 
 function kv(dl, label, value, cls, sub) {
@@ -122,13 +136,56 @@ function kv(dl, label, value, cls, sub) {
   dl.append(row);
 }
 
+/**
+ * カード内のコントロールを作る。値は params に書き戻して再描画する。
+ * 再描画でDOMが作り直されるため、フォーカスとカーソル位置は render() が復元する。
+ */
+function control({ key, label, kind, options, min, step, suffix }) {
+  const wrap = el('label', 'opt-ctrl');
+  wrap.append(el('span', 'opt-ctrl-l', label));
+  const box = el('span', 'opt-ctrl-i');
+
+  let input;
+  if (kind === 'select') {
+    input = document.createElement('select');
+    for (const o of options) {
+      const opt = el('option', null, o.label);
+      opt.value = String(o.value);
+      input.append(opt);
+    }
+    input.value = String(params[key]);
+    input.addEventListener('change', () => { params[key] = Number(input.value); render(); });
+  } else {
+    input = document.createElement('input');
+    input.type = 'number';
+    input.inputMode = 'numeric';
+    if (min != null) input.min = min;
+    if (step != null) input.step = step;
+    input.value = params[key];
+    input.addEventListener('input', () => { params[key] = Number(input.value) || 0; render(); });
+  }
+  input.id = `p-${key}`;
+  box.append(input);
+  if (suffix) box.append(el('i', null, suffix));
+  wrap.append(box);
+  return wrap;
+}
+
+const MONTH_CHOICES = [3, 6, 12, 24].map((m) => ({ value: m, label: `${m}か月` }));
+
 // ------------------------------------------------------------ 描画
 
 function render() {
+  // カード内のコントロールを操作している最中でもフォーカスが飛ばないように覚えておく
+  const active = document.activeElement;
+  const focusId = active && active.id.startsWith('p-') ? active.id : null;
+  const selStart = focusId && active.type === 'number' ? active.selectionStart : null;
+  const selEnd = focusId && active.type === 'number' ? active.selectionEnd : null;
+
   const v = readForm();
   const plan = buildPlan({ total1: v.total1, total2: v.total2, ratePct: v.ratePct });
 
-  syncFormVisibility(v, plan);
+  syncFormVisibility(v);
   renderStats(v, plan);
 
   if (plan.count === 0) {
@@ -139,13 +196,21 @@ function render() {
   }
 
   renderOptions(v, plan);
-  renderScenario(v, plan);
+  renderScenario(v);
   renderNext(v, plan);
   save();
+
+  if (focusId) {
+    const again = $(focusId);
+    if (again) {
+      again.focus();
+      if (selStart != null) { try { again.setSelectionRange(selStart, selEnd); } catch { /* number 型が拒む場合がある */ } }
+    }
+  }
 }
 
 /** 種類・入力方法に応じて出し入れする */
-function syncFormVisibility(v, plan) {
+function syncFormVisibility(v) {
   $('grp-1shu').hidden = v.kind === '2shu';
   $('grp-2shu').hidden = v.kind === '1shu';
   for (const node of document.querySelectorAll('[data-mode]')) {
@@ -156,18 +221,16 @@ function syncFormVisibility(v, plan) {
   const c1 = returnCount(v.total1);
   const c2 = returnCount(v.total2);
   $('hint1').textContent = v.total1 > 0
-    ? `貸与総額 ${money(v.total1)}円 → 返還回数 ${c1}回（${c1 / 12}年）`
-    : '';
+    ? `貸与総額 ${money(v.total1)}円 → 返還回数 ${c1}回（${c1 / 12}年）` : '';
   $('hint2').textContent = v.total2 > 0
-    ? `貸与総額 ${money(v.total2)}円 → 返還回数 ${c2}回（${c2 / 12}年）`
-    : '';
+    ? `貸与総額 ${money(v.total2)}円 → 返還回数 ${c2}回（${c2 / 12}年）` : '';
 }
 
 function renderStats(v, plan) {
   const box = $('stats');
   box.innerHTML = '';
   if (plan.count === 0) {
-    box.innerHTML = '<div class="stat"><dt>状態</dt><dd style="font-size:1rem">未入力</dd></div>';
+    box.innerHTML = '<dl class="stat"><dt>状態</dt><dd style="font-size:1rem">未入力</dd></dl>';
     $('planNote').textContent = '';
     return;
   }
@@ -210,12 +273,13 @@ function renderOptions(v, plan) {
   });
   const yEl = yuyoEligibility({ income: v.income, isSalaried: v.isSalaried });
 
-  const g = applyGengaku(plan, v.gengakuRatio, v.gengakuMonths);
-  const y = applyYuyo(plan, v.months);
-  const k = applyKuriage(plan, v.kuriage);
-  const e = applyEntai(plan, v.months);
+  const g = applyGengaku(plan, params.gengakuRatio, params.gengakuMonths);
+  const y = applyYuyo(plan, params.yuyoMonths);
+  const k = applyKuriage(plan, params.kuriage);
+  const e = applyEntai(plan, params.entaiMonths);
 
-  const ratioLabel = GENGAKU.ratios.find((r) => Math.abs(r.value - v.gengakuRatio) < 1e-9)?.label ?? '';
+  const ratioLabel = GENGAKU.ratios
+    .find((r) => Math.abs(r.value - params.gengakuRatio) < 1e-9)?.label ?? '';
 
   // --- 1. そのまま
   card(box, {
@@ -229,7 +293,7 @@ function renderOptions(v, plan) {
       ['追加のコスト', 'なし', 'v-flat'],
       ['信用情報', '影響なし', 'v-flat'],
     ],
-    foot: '基準となる選択肢です。以下はここからの差分で表示しています。',
+    foot: '基準となる選択肢です。ほかの4つは、ここからの差分を右側に小さく表示しています。',
   });
 
   // --- 2. 減額返還
@@ -238,8 +302,23 @@ function renderOptions(v, plan) {
     badge: gEl.eligible
       ? { cls: 'badge--ok', text: '使える見込み' }
       : { cls: 'badge--no', text: '要件を満たしていません' },
-    title: `減額返還（${ratioLabel}）`,
-    desc: `月々を${ratioLabel}に減らして、期間を延ばす制度`,
+    title: '減額返還',
+    desc: '月々を減らして、その分だけ返還期間を延ばす制度',
+    controls: [
+      control({
+        key: 'gengakuRatio', label: '減らす割合', kind: 'select',
+        options: GENGAKU.ratios.map((r) => ({ value: r.value, label: `${r.label}に減額` })),
+      }),
+      control({
+        key: 'gengakuMonths', label: '適用する期間', kind: 'select',
+        options: [
+          { value: 12, label: '12か月（1回の願出）' },
+          { value: 36, label: '36か月' },
+          { value: 60, label: '60か月' },
+          { value: GENGAKU.maxTotalMonths, label: `${GENGAKU.maxTotalMonths}か月（通算の上限）` },
+        ],
+      }),
+    ],
     rows: [
       ['毎月の返還額', `${money(g.monthly)}円`, 'v-good', `${money(g.monthlyDelta)}円`],
       ['完済予定', payoffOf(g.count), 'v-flat', monthsLabel(g.extraMonths)],
@@ -248,7 +327,7 @@ function renderOptions(v, plan) {
       ['信用情報', '影響なし', 'v-good'],
     ],
     foot: gEl.eligible
-      ? `${gEl.incomeKind} ${money(gEl.adjustedIncome)}円 ≦ 基準 ${money(gEl.limit)}円。適用は1回${GENGAKU.monthsPerApplication}か月、通算${GENGAKU.maxTotalMonths / 12}年まで。`
+      ? `${gEl.incomeKind} ${money(gEl.adjustedIncome)}円 ≦ 基準 ${money(gEl.limit)}円。${ratioLabel}に減らしても、返還総額も第二種の利子総額も増えません。`
       : gEl.blockers.length
         ? gEl.blockers.join('　')
         : `${gEl.incomeKind} ${money(gEl.adjustedIncome)}円 が基準 ${money(gEl.limit)}円 を超えています。`,
@@ -261,8 +340,11 @@ function renderOptions(v, plan) {
     badge: yEl.eligible
       ? { cls: 'badge--ok', text: '使える見込み' }
       : { cls: 'badge--no', text: '要件を満たしていません' },
-    title: `返還期限猶予（${v.months}か月）`,
+    title: '返還期限猶予',
     desc: '返還そのものを先送りする制度。免除ではない',
+    controls: [
+      control({ key: 'yuyoMonths', label: '猶予する期間', kind: 'select', options: MONTH_CHOICES }),
+    ],
     rows: [
       ['毎月の返還額', '0円', 'v-good', `${money(y.monthlyDelta)}円`],
       ['完済予定', payoffOf(y.count), 'v-flat', monthsLabel(y.extraMonths)],
@@ -280,8 +362,11 @@ function renderOptions(v, plan) {
   const saved = k.interestSaved ?? 0;
   card(box, {
     badge: { cls: 'badge--flat', text: 'いつでも可' },
-    title: `繰上返還（${money(k.amount)}円）`,
+    title: '繰上返還',
     desc: 'まとまった額を前倒しで返し、期間と利息を減らす',
+    controls: [
+      control({ key: 'kuriage', label: '繰り上げる額', kind: 'number', min: 0, step: 10000, suffix: '円' }),
+    ],
     rows: [
       ['毎月の返還額', `${money(k.monthly)}円`, 'v-flat', '変わらない'],
       ['完済予定', payoffOf(k.count), 'v-good', monthsLabel(k.extraMonths)],
@@ -301,10 +386,13 @@ function renderOptions(v, plan) {
   card(box, {
     cls: 'opt--danger',
     badge: { cls: 'badge--no', text: '避けたい選択肢' },
-    title: `延滞した場合（${v.months}か月）`,
+    title: '延滞した場合',
     desc: '手続きをせずに支払いを止めるとこうなる',
+    controls: [
+      control({ key: 'entaiMonths', label: '延滞する期間', kind: 'select', options: MONTH_CHOICES }),
+    ],
     rows: [
-      ['未払いの累計', `${money(e.arrears)}円`, 'v-danger', `毎月の返還額 × ${v.months}か月`],
+      ['未払いの累計', `${money(e.arrears)}円`, 'v-danger', `毎月の返還額 × ${params.entaiMonths}か月`],
       ['延滞金', `${money(e.extraCost)}円`, 'v-warn', `年${ENTAI.annualRate * 100}%（元金部分に日割り）`],
       ['一括請求のリスク', `${money(e.lumpSumRisk)}円`, 'v-danger', '期限の利益を失うと残額の全額'],
       ['信用情報', e.creditImpact ? '登録される' : 'まだ影響なし', e.creditImpact ? 'v-danger' : 'v-warn',
@@ -319,13 +407,19 @@ function renderOptions(v, plan) {
   });
 }
 
-function card(parent, { cls = '', badge, title, desc, rows, foot, footCls = '' }) {
+function card(parent, { cls = '', badge, title, desc, controls, rows, foot, footCls = '' }) {
   const c = el('article', `opt ${cls}`);
   const hd = el('div', 'opt-hd');
   if (badge) hd.append(el('span', `badge ${badge.cls}`, badge.text));
   hd.append(el('h3', null, title));
   if (desc) hd.append(el('p', null, desc));
   c.append(hd);
+
+  if (controls && controls.length) {
+    const cbox = el('div', 'opt-ctrls');
+    for (const ctl of controls) cbox.append(ctl);
+    c.append(cbox);
+  }
 
   const dl = el('dl');
   for (const [label, value, vcls, sub] of rows) kv(dl, label, value, vcls, sub);
@@ -335,7 +429,7 @@ function card(parent, { cls = '', badge, title, desc, rows, foot, footCls = '' }
   parent.append(c);
 }
 
-function renderScenario(v, plan) {
+function renderScenario(v) {
   const sec = $('scenarioSec');
   const show = v.kind !== '1shu' && v.total2 > 0 && v.rateMode === 'review';
   sec.hidden = !show;
@@ -343,7 +437,7 @@ function renderScenario(v, plan) {
 
   $('scenarioLead').textContent =
     `利率見直し方式は、おおむね${RATES_2SHU.review.reviewIntervalYears}年ごとに利率が見直されます。`
-    + `いまの利率が将来も続くとは限らないので、上がった場合も見ておいてください。`
+    + 'いまの利率が将来も続くとは限らないので、上がった場合も見ておいてください。'
     + `第二種の利率には年${RATES_2SHU.cap}%の上限があります。`;
 
   const box = $('scenario');
@@ -416,15 +510,15 @@ function renderNext(v, plan) {
   } else {
     step('いまは制度の収入基準を超えている',
       [
-        `減額返還も返還期限猶予も、経済困難を理由とした収入基準は満たしていません。いまのところ通常どおり返還を続けるのが基本になります。`,
+        '減額返還も返還期限猶予も、経済困難を理由とした収入基準は満たしていません。いまのところ通常どおり返還を続けるのが基本になります。',
         '収入が下がったとき、失業したとき、傷病・災害にあったときは基準が変わります。そのときにこのページに戻ってきてください。',
       ], 'is-warn');
   }
 
-  if (plan.interest > 0 && v.kuriage > 0) {
-    const k = applyKuriage(plan, v.kuriage);
+  if (plan.interest > 0 && params.kuriage > 0) {
+    const k = applyKuriage(plan, params.kuriage);
     step('繰上返還は「生活防衛資金を残したうえで」',
-      `${money(v.kuriage)}円 を繰り上げると利息が ${money(k.interestSaved)}円 減り、完済が ${monthsLabel(k.extraMonths).replace('−', '')}早まります。`
+      `${money(params.kuriage)}円 を繰り上げると利息が ${money(k.interestSaved)}円 減り、完済が ${monthsLabel(k.extraMonths).replace('−', '')}早まります。`
       + 'ただし手元の現金が減ります。失業や病気に備えた資金を削ってまで急ぐ必要はありません。');
   }
 
@@ -433,17 +527,6 @@ function renderNext(v, plan) {
 }
 
 function renderStatic() {
-  // 減額返還の割合セレクト
-  const sel = $('gengakuRatio');
-  sel.innerHTML = '';
-  for (const r of GENGAKU.ratios) {
-    const o = el('option', null, `${r.label}に減額`);
-    o.value = String(r.value);
-    sel.append(o);
-  }
-  sel.value = '0.5';
-
-  // 相談先
   const cs = $('consult');
   for (const c of CONSULT) {
     const li = el('li');
@@ -451,13 +534,11 @@ function renderStatic() {
     cs.append(li);
   }
 
-  // 出典
   const ss = $('srcs');
   for (const s of Object.values(SOURCES)) {
     ss.append(el('li', null, `<a href="${s.url}" target="_blank" rel="noopener">JASSO｜${s.label}</a>`));
   }
 
-  // 精度の説明
   $('accuracy').innerHTML =
     '返還回数は、JASSOが公開している割賦金基礎額表にもとづいて計算しています。'
     + '<b>第一種（無利子）は、JASSO公式の返還例と完全に一致します。</b>'
@@ -475,19 +556,14 @@ function renderStatic() {
 
 function init() {
   renderStatic();
-  if (!restore()) applyValues(SAMPLE);
+  if (!restore()) applyFormValues(SAMPLE_FORM);
   render();
 
   $('form').addEventListener('input', render);
   $('form').addEventListener('change', render);
-  for (const id of ['gengakuRatio', 'gengakuMonths', 'months']) {
-    $(id).addEventListener('change', render);
-  }
   $('reset').addEventListener('click', () => {
-    applyValues(SAMPLE);
-    $('gengakuRatio').value = SAMPLE.gengakuRatio;
-    $('gengakuMonths').value = SAMPLE.gengakuMonths;
-    $('months').value = SAMPLE.months;
+    applyFormValues(SAMPLE_FORM);
+    params = { ...SAMPLE_PARAMS };
     render();
   });
 }

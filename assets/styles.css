@@ -186,19 +186,20 @@ h3.sub {
   border: 1px solid var(--rule);
   background: var(--surface);
   border-radius: 12px;
-  padding: 8px 22px 22px;
-  margin: 0;
+  padding: 20px 22px 22px;
   min-width: 0;
 }
 
-.fs > legend {
-  font-weight: 700;
+/* 見出しは枠線に乗せず、枠の内側に置く（legend の切り欠き表示を使わない） */
+.fs-title {
+  margin: 0 0 4px;
   font-size: .95rem;
-  padding: 0 10px;
-  margin-left: -10px;
+  font-weight: 700;
   color: var(--ink);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule);
 }
-.lg-note { font-weight: 400; font-size: .78rem; color: var(--muted); margin-left: 10px; }
+.fs-title small { font-weight: 400; font-size: .78rem; color: var(--muted); margin-left: 10px; }
 
 .field { margin-top: 16px; }
 
@@ -278,7 +279,7 @@ input[type="number"] { text-align: right; }
 
 .grp { margin-top: 22px; padding-top: 18px; border-top: 1px dashed var(--rule); }
 .grp:first-of-type { border-top: 0; }
-.grp-h { margin: 0; font-size: .88rem; font-weight: 700; color: var(--accent); }
+.grp-h { margin: 0 0 2px; font-size: .88rem; font-weight: 700; color: var(--accent); }
 
 .hint {
   margin: 12px 0 0;
@@ -333,17 +334,26 @@ input[type="number"] { text-align: right; }
 
 /* ---------------------------------------------------------------- controls */
 
-.ctrls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px 20px;
-  padding: 16px 18px;
+/* カードごとの条件。そのカードの数字だけを動かすので、カードの中に置く。 */
+.opt-ctrls {
+  display: grid;
+  gap: 10px;
+  padding: 14px 18px;
   background: var(--surface-2);
-  border-radius: 10px;
-  margin-bottom: 22px;
+  border-bottom: 1px solid var(--rule);
 }
-.ctrl { display: grid; gap: 5px; min-width: 190px; flex: 1 1 190px; }
-.ctrl > span { font-size: .78rem; font-weight: 700; color: var(--ink-2); }
+.opt-ctrl { display: grid; gap: 4px; }
+.opt-ctrl-l { font-size: .74rem; font-weight: 700; color: var(--ink-2); }
+.opt-ctrl-i { display: flex; align-items: center; gap: 7px; }
+.opt-ctrl-i i {
+  font-style: normal; font-size: .8rem; color: var(--muted); white-space: nowrap;
+}
+.opt-ctrl-i select,
+.opt-ctrl-i input[type="number"] {
+  font-size: .88rem;
+  padding: 7px 10px;
+  background: var(--surface);
+}
 
 /* ---------------------------------------------------------------- options */
 
